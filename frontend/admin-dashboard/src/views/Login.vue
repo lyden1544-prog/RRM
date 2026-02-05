@@ -1,129 +1,283 @@
+<!-- frontend/admin-dashboard/src/views/Login.vue -->
 <template>
-  <div class="login-container">
-    <div class="login-box">
-      <h1>MockConnect Admin</h1>
-      <p class="subtitle">Login to your account</p>
-      
-      <form @submit.prevent="handleLogin">
-        <div class="form-group">
-          <label>Email</label>
-          <input 
-            v-model="form.email" 
-            type="email" 
-            placeholder="admin@mockconnect.com"
-            required
+  <div class="login-page">
+    <div class="login-container">
+      <div class="login-box">
+        <h1>MockConnect</h1>
+        <p class="subtitle">Admin Dashboard</p>
+
+        <!-- Tabs -->
+        <div class="tabs">
+          <button 
+            :class="['tab', { active: isLogin }]"
+            @click="isLogin = true"
           >
-        </div>
-
-        <div class="form-group">
-          <label>Password</label>
-          <input 
-            v-model="form.password" 
-            type="password" 
-            placeholder="Enter password"
-            required
+            Login
+          </button>
+          <button 
+            :class="['tab', { active: !isLogin }]"
+            @click="isLogin = false"
           >
+            Register
+          </button>
         </div>
 
-        <div v-if="error" class="error-message">
-          {{ error }}
-        </div>
+        <!-- Login Form -->
+        <form v-if="isLogin" @submit.prevent="handleLogin" class="form">
+          <div class="form-group">
+            <label>Email</label>
+            <input 
+              v-model="loginForm.email" 
+              type="email" 
+              placeholder="your@email.com"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input 
+              v-model="loginForm.password" 
+              type="password" 
+              placeholder="••••••••"
+              required
+            />
+          </div>
+          <button type="submit" :disabled="loading" class="btn-primary">
+            {{ loading ? 'Logging in...' : 'Login' }}
+          </button>
+          <p v-if="error" class="error">{{ error }}</p>
+        </form>
 
-        <button type="submit" class="btn-login" :disabled="loading">
-          {{ loading ? 'Logging in...' : 'Login' }}
-        </button>
-      </form>
+        <!-- Register Form -->
+        <form v-else @submit.prevent="handleRegister" class="form">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input 
+              v-model="registerForm.full_name" 
+              type="text" 
+              placeholder="John Doe"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input 
+              v-model="registerForm.email" 
+              type="email" 
+              placeholder="your@email.com"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>Company</label>
+            <input 
+              v-model="registerForm.company_name" 
+              type="text" 
+              placeholder="Your Company"
+            />
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input 
+              v-model="registerForm.password" 
+              type="password" 
+              placeholder="••••••••"
+              required
+            />
+          </div>
+          <button type="submit" :disabled="loading" class="btn-primary">
+            {{ loading ? 'Creating account...' : 'Register' }}
+          </button>
+          <p v-if="error" class="error">{{ error }}</p>
+        </form>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '../store/auth.js';
+
 export default {
   name: 'Login',
-  data() {
-    return {
-      form: {
-        email: '',
-        password: ''
-      },
-      loading: false,
-      error: ''
-    }
-  },
-  methods: {
-    async handleLogin() {
-      this.loading = true
-      this.error = ''
+  setup() {
+    const router = useRouter();
+    const authStore = useAuthStore();
+    const isLogin = ref(true);
+    const loading = ref(false);
+    const error = ref('');
+
+    const loginForm = ref({
+      email: '',
+      password: '',
+    });
+
+    const registerForm = ref({
+      full_name: '',
+      email: '',
+      company_name: '',
+      password: '',
+    });
+
+    const handleLogin = async () => {
+      error.value = '';
+      loading.value = true;
 
       try {
-        // TODO: Connect to backend API
-        // For now, just redirect if email/password exist
-        if (this.form.email && this.form.password) {
-          // Store in localStorage
-          localStorage.setItem('token', 'dummy-token')
-          localStorage.setItem('user', JSON.stringify({
-            email: this.form.email
-          }))
-          
-          // Redirect to dashboard
-          this.$router.push('/')
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(loginForm.value),
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          error.value = result.message || 'Login failed';
+          return;
         }
+
+        // Store token and user
+        authStore.setToken(result.data.session.access_token);
+        authStore.setUser(result.data.user);
+
+        router.push('/');
       } catch (err) {
-        this.error = 'Login failed. Please try again.'
+        error.value = err.message || 'An error occurred';
       } finally {
-        this.loading = false
+        loading.value = false;
       }
-    }
-  }
-}
+    };
+
+    const handleRegister = async () => {
+      error.value = '';
+      loading.value = true;
+
+      try {
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(registerForm.value),
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          error.value = result.message || 'Registration failed';
+          return;
+        }
+
+        // Auto login after register
+        isLogin.value = true;
+        loginForm.value.email = registerForm.value.email;
+        error.value = 'Registration successful! Please login.';
+      } catch (err) {
+        error.value = err.message || 'An error occurred';
+      } finally {
+        loading.value = false;
+      }
+    };
+
+    return {
+      isLogin,
+      loading,
+      error,
+      loginForm,
+      registerForm,
+      handleLogin,
+      handleRegister,
+    };
+  },
+};
 </script>
 
 <style scoped>
-.login-container {
-  min-height: 100vh;
+.login-page {
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.login-container {
+  width: 100%;
+  max-width: 400px;
+  padding: 1rem;
 }
 
 .login-box {
   background: white;
-  padding: 3rem;
   border-radius: 8px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-  width: 100%;
-  max-width: 400px;
+  padding: 2rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
-.login-box h1 {
-  margin: 0 0 0.5rem 0;
-  color: #2c3e50;
+h1 {
   text-align: center;
+  margin: 0 0 0.5rem;
+  color: #2c3e50;
   font-size: 2rem;
 }
 
 .subtitle {
-  margin: 0 0 2rem 0;
-  color: #999;
   text-align: center;
+  color: #7f8c8d;
+  margin: 0 0 2rem;
+  font-size: 0.9rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.tab {
+  flex: 1;
+  padding: 1rem;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  color: #7f8c8d;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.tab.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+}
+
+.tab:hover {
+  color: #667eea;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
 }
 
 .form-group label {
-  display: block;
   margin-bottom: 0.5rem;
   color: #2c3e50;
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 0.9rem;
 }
 
 .form-group input {
-  width: 100%;
   padding: 0.75rem;
-  border: 1px solid #ddd;
+  border: 1px solid #bdc3c7;
   border-radius: 4px;
   font-size: 1rem;
   transition: border-color 0.3s;
@@ -135,34 +289,43 @@ export default {
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.error-message {
-  background: #fee;
-  color: #c33;
-  padding: 0.75rem;
-  border-radius: 4px;
-  margin-bottom: 1rem;
-  text-align: center;
-}
-
-.btn-login {
-  width: 100%;
+.btn-primary {
   padding: 0.75rem;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
   border-radius: 4px;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
-  transition: transform 0.3s;
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin-top: 1rem;
 }
 
-.btn-login:hover:not(:disabled) {
+.btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
 }
 
-.btn-login:disabled {
-  opacity: 0.7;
+.btn-primary:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
+}
+
+.error {
+  color: #e74c3c;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .login-box {
+    padding: 1.5rem;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
 }
 </style>

@@ -7,7 +7,7 @@
           <li><router-link to="/">Dashboard</router-link></li>
           <li><router-link to="/users">Users</router-link></li>
           <li><router-link to="/devices">Devices</router-link></li>
-          <li><router-link to="/logout">Logout</router-link></li>
+          <li><a @click="handleLogout" href="#" class="logout-link">Logout</a></li>
         </ul>
       </div>
     </nav>
@@ -18,8 +18,29 @@
 </template>
 
 <script>
+import { useRouter } from 'vue-router'
+import { useAuthStore } from './store/auth.js'
+
 export default {
-  name: 'App'
+  name: 'App',
+  setup() {
+    const router = useRouter()
+    const authStore = useAuthStore()
+
+    const handleLogout = async (e) => {
+      e.preventDefault()
+      
+      // Call logout in store (calls backend)
+      await authStore.logout()
+      
+      // Redirect to login
+      router.push('/login')
+    }
+
+    return {
+      handleLogout
+    }
+  }
 }
 </script>
 
@@ -69,6 +90,7 @@ body {
   color: white;
   text-decoration: none;
   transition: color 0.3s;
+  cursor: pointer;
 }
 
 .nav-links a:hover {
@@ -78,6 +100,18 @@ body {
 .nav-links a.router-link-active {
   color: #42b983;
   border-bottom: 2px solid #42b983;
+}
+
+.logout-link {
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.logout-link:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #e74c3c;
 }
 
 .main-content {
