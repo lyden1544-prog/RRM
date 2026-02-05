@@ -1,4 +1,3 @@
-<!-- frontend/admin-dashboard/src/views/Login.vue -->
 <template>
   <div class="login-page">
     <div class="login-container">
@@ -46,6 +45,7 @@
             {{ loading ? 'Logging in...' : 'Login' }}
           </button>
           <p v-if="error" class="error">{{ error }}</p>
+          <p v-if="success" class="success">{{ success }}</p>
         </form>
 
         <!-- Register Form -->
@@ -89,6 +89,7 @@
             {{ loading ? 'Creating account...' : 'Register' }}
           </button>
           <p v-if="error" class="error">{{ error }}</p>
+          <p v-if="success" class="success">{{ success }}</p>
         </form>
       </div>
     </div>
@@ -98,16 +99,18 @@
 <script>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from '../store/auth.js';
+import { useAuthStore } from '../store';
 
 export default {
   name: 'Login',
   setup() {
     const router = useRouter();
     const authStore = useAuthStore();
+    
     const isLogin = ref(true);
     const loading = ref(false);
     const error = ref('');
+    const success = ref('');
 
     const loginForm = ref({
       email: '',
@@ -123,29 +126,19 @@ export default {
 
     const handleLogin = async () => {
       error.value = '';
+      success.value = '';
       loading.value = true;
 
       try {
-        const response = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(loginForm.value),
-        });
-
-        const result = await response.json();
-
-        if (!result.success) {
-          error.value = result.message || 'Login failed';
-          return;
-        }
-
-        // Store token and user
-        authStore.setToken(result.data.session.access_token);
-        authStore.setUser(result.data.user);
-
-        router.push('/');
+        await authStore.login(loginForm.value);
+        success.value = 'Login successful! Redirecting...';
+        
+        // Redirect to dashboard after 1 second
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 1000);
       } catch (err) {
-        error.value = err.message || 'An error occurred';
+        error.value = err.response?.data?.message || 'Login failed. Please try again.';
       } finally {
         loading.value = false;
       }
@@ -153,28 +146,19 @@ export default {
 
     const handleRegister = async () => {
       error.value = '';
+      success.value = '';
       loading.value = true;
 
       try {
-        const response = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(registerForm.value),
-        });
-
-        const result = await response.json();
-
-        if (!result.success) {
-          error.value = result.message || 'Registration failed';
-          return;
-        }
-
-        // Auto login after register
-        isLogin.value = true;
-        loginForm.value.email = registerForm.value.email;
-        error.value = 'Registration successful! Please login.';
+        await authStore.register(registerForm.value);
+        success.value = 'Registration successful! Redirecting to dashboard...';
+        
+        // Redirect to dashboard after 1 second
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 1000);
       } catch (err) {
-        error.value = err.message || 'An error occurred';
+        error.value = err.response?.data?.message || 'Registration failed. Please try again.';
       } finally {
         loading.value = false;
       }
@@ -184,6 +168,7 @@ export default {
       isLogin,
       loading,
       error,
+      success,
       loginForm,
       registerForm,
       handleLogin,
@@ -317,6 +302,19 @@ h1 {
   font-size: 0.9rem;
   margin-top: 0.5rem;
   text-align: center;
+  padding: 0.5rem;
+  background: #fee;
+  border-radius: 4px;
+}
+
+.success {
+  color: #27ae60;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  text-align: center;
+  padding: 0.5rem;
+  background: #d5f4e6;
+  border-radius: 4px;
 }
 
 @media (max-width: 600px) {

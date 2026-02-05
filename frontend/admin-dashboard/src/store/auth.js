@@ -1,186 +1,126 @@
-// frontend/admin-dashboard/src/store/auth.js - FIXED
+/**
+ * Authentication Store (Pinia)
+ * Manages user authentication state
+ */
+
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import api from '../services/api';
 
-export const useAuthStore = defineStore('auth', () => {
-  const user = ref(null);
-  const token = ref(localStorage.getItem('token') || null);
-  const isAuthenticated = computed(() => !!token.value);
+export const useAuthStore = defineStore('auth', {
+  state: () => ({
+    user: JSON.parse(localStorage.getItem('user')) || null,
+    accessToken: localStorage.getItem('accessToken') || null,
+    refreshToken: localStorage.getItem('refreshToken') || null,
+    isAuthenticated: !!localStorage.getItem('accessToken'),
+    loading: false,
+    error: null
+  }),
 
-  const setUser = (userData) => {
-    user.value = userData;
-    localStorage.setItem('user', JSON.stringify(userData));
-  };
+  getters: {
+    isLoggedIn: (state) => state.isAuthenticated && state.user !== null,
+    currentUser: (state) => state.user,
+    isAdmin: (state) => state.user?.role === 'admin'
+  },
 
-  const setToken = (newToken) => {
-    token.value = newToken;
-    localStorage.setItem('token', newToken);
-  };
+  actions: {
+    async login(credentials) {
+      this.loading = true;
+      this.error = null;
 
-  const login = async (email, password) => {
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+      try {
+        const response = await api.auth.login(credentials);
+        const { user, accessToken, refreshToken } = response.data.data;
 
-      const result = await response.json();
+        this.user = user;
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+        this.isAuthenticated = true;
 
-      if (!result.success) {
-        throw new Error(result.message);
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
+
+        this.loading = false;
+        return response.data;
+      } catch (error) {
+        this.loading = false;
+        this.error = error.response?.data?.message || 'Login failed';
+        throw error;
+      }
+    },
+
+    async register(userData) {
+      this.loading = true;
+      this.error = null;
+
+      try {
+        const response = await api.auth.register(userData);
+        const { user, accessToken, refreshToken } = response.data.data;
+
+        this.user = user;
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+        this.isAuthenticated = true;
+
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
+
+        this.loading = false;
+        return response.data;
+      } catch (error) {
+        this.loading = false;
+        this.error = error.response?.data?.message || 'Registration failed';
+        throw error;
+      }
+    },
+
+    async logout() {
+      try {
+        await api.auth.logout();
+      } catch (error) {
+        console.error('Logout error:', error);
+      } finally {
+        this.user = null;
+        this.accessToken = null;
+        this.refreshToken = null;
+        this.isAuthenticated = false;
+
+        localStorage.removeItem('user');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+      }
+    },
+
+    async fetchProfile() {
+      this.loading = true;
+      this.error = null;
+
+      try {
+        const response = await api.auth.getProfile();
+        this.user = response.data.data.user;
+        localStorage.setItem('user', JSON.stringify(this.user));
+        this.loading = false;
+        return response.data;
+      } catch (error) {
+        this.loading = false;
+        this.error = error.response?.data?.message || 'Failed to fetch profile';
+        throw error;
+      }
+    },
+
+    checkAuth() {
+      const token = localStorage.getItem('accessToken');
+      const user = localStorage.getItem('user');
+
+      if (token && user) {
+        this.isAuthenticated = true;
+        this.accessToken = token;
+        this.user = JSON.parse(user);
+        return true;
       }
 
-      setToken(result.data.session.access_token);
-      setUser(result.data.user);
-
-      return { success: true, user: result.data.user };
-    } catch (error) {
-      return { success: false, error: error.message };
+      return false;
     }
-  };
-
-  const register = async (email, password, full_name, company_name) => {
-    try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          password,
-          full_name,
-          company_name,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.message);
-      }
-
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  };
-
-  const logout = async () => {
-    try {
-      // Call backend logout endpoint
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token.value}`,
-        },
-      });
-    } catch (error) {
-      console.error('Logout API error:', error);
-    } finally {
-      // Clear local state regardless of API call
-      user.value = null;
-      token.value = null;
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-    }
-  };
-
-  const getUser = async () => {
-    if (!token.value) return null;
-
-    try {
-      const response = await fetch('/api/auth/me', {
-        headers: { Authorization: `Bearer ${token.value}` },
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        setUser(result.data.user);
-        return result.data.user;
-      }
-
-      logout();
-      return null;
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      logout();
-      return null;
-    }
-  };
-
-  const updateProfile = async (updates) => {
-    try {
-      const response = await fetch('/api/auth/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token.value}`,
-        },
-        body: JSON.stringify(updates),
-      });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.message);
-      }
-
-      setUser(result.data.user);
-      return { success: true, user: result.data.user };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  };
-
-  const deleteAccount = async () => {
-    try {
-      const response = await fetch('/api/auth/delete-account', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token.value}`,
-        },
-      });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.message);
-      }
-
-      logout();
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  };
-
-  // Initialize from localStorage
-  const initialize = async () => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      user.value = JSON.parse(storedUser);
-    }
-
-    if (token.value) {
-      await getUser();
-    }
-  };
-
-  return {
-    user,
-    token,
-    isAuthenticated,
-    setUser,
-    setToken,
-    login,
-    register,
-    logout,
-    getUser,
-    updateProfile,
-    deleteAccount,
-    initialize,
-  };
+  }
 });
