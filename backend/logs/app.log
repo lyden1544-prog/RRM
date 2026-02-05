@@ -1,0 +1,13 @@
+{"level":"info","message":"Initializing database connection...","service":"mockconnect-backend","timestamp":"2026-02-05 04:52:56"}
+{"level":"error","message":"✗ Database connection failed: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local","service":"mockconnect-backend","timestamp":"2026-02-05 04:52:56"}
+{"level":"info","message":"\n        ╔═══════════════════════════════════╗\n        ║  🚀 MockConnect Backend Server    ║\n        ║  Running on port 5000            ║\n        ║  Environment: development      ║\n        ╚═══════════════════════════════════╝\n      ","service":"mockconnect-backend","timestamp":"2026-02-05 04:52:56"}
+{"level":"info","message":"Shutting down gracefully...","service":"mockconnect-backend","timestamp":"2026-02-05 04:53:06"}
+{"level":"info","message":"Initializing database connection...","service":"mockconnect-backend","timestamp":"2026-02-05 04:54:24"}
+{"level":"error","message":"✗ Database connection failed: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local","service":"mockconnect-backend","timestamp":"2026-02-05 04:54:24"}
+{"level":"info","message":"\n        ╔═══════════════════════════════════╗\n        ║  🚀 MockConnect Backend Server    ║\n        ║  Running on port 5000            ║\n        ║  Environment: development      ║\n        ╚═══════════════════════════════════╝\n      ","service":"mockconnect-backend","timestamp":"2026-02-05 04:54:24"}
+{"level":"info","message":"[GET] /health","service":"mockconnect-backend","timestamp":"2026-02-05 04:55:30"}
+{"level":"info","message":"Shutting down gracefully...","service":"mockconnect-backend","timestamp":"2026-02-05 04:56:06"}
+{"level":"info","message":"Initializing database connection...","service":"mockconnect-backend","timestamp":"2026-02-05 04:56:51"}
+{"level":"info","message":"✓ Database connection established","service":"mockconnect-backend","timestamp":"2026-02-05 04:56:51"}
+{"level":"info","message":"\n        ╔═══════════════════════════════════╗\n        ║  🚀 MockConnect Backend Server    ║\n        ║  Running on port 5000            ║\n        ║  Environment: development      ║\n        ╚═══════════════════════════════════╝\n      ","service":"mockconnect-backend","timestamp":"2026-02-05 04:56:51"}
+{"level":"info","message":"[GET] /health","service":"mockconnect-backend","timestamp":"2026-02-05 04:56:58"}

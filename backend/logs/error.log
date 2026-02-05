@@ -1,0 +1,2 @@
+{"level":"error","message":"✗ Database connection failed: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local","service":"mockconnect-backend","timestamp":"2026-02-05 04:52:56"}
+{"level":"error","message":"✗ Database connection failed: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local","service":"mockconnect-backend","timestamp":"2026-02-05 04:54:24"}
